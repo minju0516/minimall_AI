@@ -5,7 +5,21 @@ const { changeStatus } = require("./order");
 
 // 결제대기 상태로 timeoutMinutes 분 이상 지난 주문을 취소하고 재고를 복원한다. 취소된 주문번호 배열(오름차순)을 돌려준다.
 function expirePendingOrders(ctx, { timeoutMinutes = 30 } = {}) {
-  throw new Error("NOT_IMPLEMENTED: expirePendingOrders");
+  const now = ctx.clock.now();
+  const expiredOrderIds = [];
+
+  for (const order of ctx.store.orders.values()) {
+    if (order.status !== "PENDING_PAYMENT") continue;
+
+    const elapsedMinutes = (now - new Date(order.createdAt)) / (60 * 1000);
+    if (elapsedMinutes < timeoutMinutes) continue;
+
+    changeStatus(ctx, order.id, "CANCELED");
+    restoreStock(ctx, order);
+    expiredOrderIds.push(order.id);
+  }
+
+  return expiredOrderIds.sort();
 }
 
 module.exports = { expirePendingOrders };
