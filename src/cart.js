@@ -6,7 +6,35 @@ const MAX_QTY = 99;
 
 // 장바구니에 상품을 담는다. 이미 담긴 상품이면 수량을 합산한다. 담은 뒤의 장바구니(getCart 형식)를 돌려준다.
 function addToCart(ctx, userId, productId, quantity) {
-  throw new Error("NOT_IMPLEMENTED: addToCart");
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QTY) {
+    throw new AppError("INVALID_QUANTITY", "수량은 1~99 사이의 정수여야 합니다", {
+      quantity,
+    });
+  }
+
+  const product = ctx.store.products.get(productId);
+  if (!product || product.status !== "ON_SALE") {
+    throw new AppError("NOT_FOUND", "상품을 찾을 수 없습니다", { productId });
+  }
+
+  const existingCart = ctx.store.carts.get(userId);
+  const existingQuantity = existingCart ? existingCart.get(productId) || 0 : 0;
+  const requestedQuantity = existingQuantity + quantity;
+
+  if (requestedQuantity > product.stock) {
+    throw new AppError("OUT_OF_STOCK", "재고가 부족합니다", {
+      productId,
+      maxAddable: Math.max(0, product.stock - existingQuantity),
+    });
+  }
+
+  const cart = existingCart || new Map();
+  cart.set(productId, requestedQuantity);
+  if (!existingCart) {
+    ctx.store.carts.set(userId, cart);
+  }
+
+  return getCart(ctx, userId);
 }
 
 // 담긴 상품의 수량을 quantity 로 바꾼다. 바뀐 장바구니를 돌려준다.
