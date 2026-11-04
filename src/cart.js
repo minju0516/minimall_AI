@@ -70,7 +70,15 @@ function changeQuantity(ctx, userId, productId, quantity) {
 
 // 담긴 상품을 장바구니에서 뺀다. 바뀐 장바구니를 돌려준다.
 function removeItem(ctx, userId, productId) {
-  throw new Error("NOT_IMPLEMENTED: removeItem");
+  const cart = ctx.store.carts.get(userId);
+  if (!cart || !cart.has(productId)) {
+    throw new AppError("NOT_FOUND", "장바구니 상품을 찾을 수 없습니다", {
+      productId,
+    });
+  }
+
+  cart.delete(productId);
+  return getCart(ctx, userId);
 }
 
 // 장바구니를 { userId, items: [{ productId, name, unitPrice, quantity, lineTotal }], totalAmount } 형식으로 돌려준다.
