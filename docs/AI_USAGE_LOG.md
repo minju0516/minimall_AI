@@ -17,16 +17,15 @@
 
 ---
 
-### [Mission 1] 작업 단위: getCart → addToCart → changeQuantity → removeItem
-- 도구 · 용도: Claude(채팅). 함수 하나씩 질문(프롬프트)을 따로 만들어 구현하게 했다. 결과는 src/cart.js 에 붙여 넣었다. (저장소에 M1 구현이 없어서 이 방식으로 진행)
-- 입력한 요청(프롬프트) 요약 — 목표 / 맥락 / 제약 / 검증 기준: 목표 = 함수 하나만 구현. 맥락 = API_CONTRACT.md 1장, SRS FR-CART-01·02 / US-05·06, test/m1_cart.test.js. 제약 = 외부 라이브러리 금지 · AppError 와 계약서 오류 코드만 · 오류가 나면 장바구니는 바뀌지 않음 · test/ 수정 금지. 검증 기준 = npm run test:m1.
-- 에이전트가 제안한 계획에서 사람이 바꾼 것: ___ (바꾼 것이 없으면 "없음")
-- 결과 — 테스트 실행 결과(통과 / 실패 수): Claude 환경에서 단계별 0/12(getCart만) → 8/12(+addToCart) → 11/12(+changeQuantity) → 12/12(+removeItem). **팀 컴퓨터에서 직접 실행한 결과: ___ 통과 / ___ 실패**
-- 에이전트의 실수 · 환각 · 불필요한 변경 (있다면): ___ (실제로 본 것이 있으면 적는다. 없으면 "없음")
-- 사람이 확인한 범위(diff 를 어디까지 읽었는가, 직접 실행한 것): ___
-- 고친 점 / 다음에 바꿀 프롬프트 규칙: ___
-- 재시도 횟수: ___
-- 가정(계약서에 없는 부분): changeQuantity 의 OUT_OF_STOCK 에서 maxAddable 은 테스트에 맞춰 "그 상품에 설정할 수 있는 최대 수량(재고)"로 넣었다. 상품 정보가 사라진 장바구니 항목은 getCart 에서 건너뛴다.
+### [Mission 1] 작업 단위: getCart → addToCart (US-05, 계약서 1장) — changeQuantity, removeItem은 이어서 진행
+- 도구 · 용도: VS Code + GitHub Copilot Agent — 계획 요청 → 구현
+- 입력한 요청(프롬프트) 요약 — 목표 / 맥락 / 제약 / 검증 기준: 목표: 함수 하나씩(getCart, addToCart)만, 계획 먼저 / 맥락: API_CONTRACT 1장, SRS US-05·06 / 제약: 외부 라이브러리 금지, test·공통 도구 수정 금지, 오류 시 장바구니 불변 / 검증: npm run test:m1
+- 에이전트가 제안한 계획에서 사람이 바꾼 것: (getCart) STOPPED·삭제 상품 처리가 계약서에 없다고 에이전트가 질문 → 사람이 "STOPPED 상품도 그대로 표시"로 결정. (addToCart) 합산 수량이 99 초과일 때 처리가 계약서에 없다고 질문 → 사람이 "재고 이내이면 허용"으로 결정. 계획에 maxAddable 계산이 없어서 승인 때 "재고 − 기존 수량, 0 미만이면 0"을 명시함
+- 결과 — 테스트 실행 결과(통과 / 실패 수): getCart 후 test:m1 12개 모두 실패(전부 addToCart 미구현). addToCart 후 12개 중 8개 통과, 4개 실패(changeQuantity 3개, removeItem 1개 미구현)
+- 에이전트의 실수 · 환각 · 불필요한 변경 (있다면): 계획 단계에서 maxAddable 계산을 빠뜨림(구현에는 반영됨). 불필요한 변경은 없었음
+- 사람이 확인한 범위(diff 를 어디까지 읽었는가, 직접 실행한 것): cart.js diff 전체, npm run test:m1 직접 실행, NOT_IMPLEMENTED 검색으로 남은 실패 원인 확인, 허용한 명령은 테스트 실행과 임시 검사 명령
+- 고친 점 / 다음에 바꿀 프롬프트 규칙: 요청문에 "계약서에 없는 동작은 추측하지 말고 질문"을 넣었더니 에이전트가 멈춰서 물어봄. 값 계산 공식(maxAddable)은 계획 승인 때 명시하기
+- 재시도 횟수: 0
 
 ### [Mission 2] 작업 단위: canTransition → changeStatus → createOrder(검사 단계) → createOrder(생성 단계)
 - 도구 · 용도: Claude(채팅). 함수 단위로 질문(프롬프트)을 작성하고 구현하게 했다. 구현 결과는 팀이 src/order.js 에 붙여 넣었다.
