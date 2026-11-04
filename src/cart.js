@@ -21,7 +21,27 @@ function removeItem(ctx, userId, productId) {
 
 // 장바구니를 { userId, items: [{ productId, name, unitPrice, quantity, lineTotal }], totalAmount } 형식으로 돌려준다.
 function getCart(ctx, userId) {
-  throw new Error("NOT_IMPLEMENTED: getCart");
+  const cart = ctx.store.carts.get(userId);
+  const items = [];
+  let totalAmount = 0;
+
+  if (cart) {
+    for (const [productId, quantity] of cart) {
+      const product = ctx.store.products.get(productId);
+      const lineTotal = product.price * quantity;
+
+      items.push({
+        productId,
+        name: product.name,
+        unitPrice: product.price,
+        quantity,
+        lineTotal,
+      });
+      totalAmount += lineTotal;
+    }
+  }
+
+  return { userId, items, totalAmount };
 }
 
 module.exports = { addToCart, changeQuantity, removeItem, getCart, MAX_QTY };
