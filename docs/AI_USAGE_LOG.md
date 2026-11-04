@@ -16,16 +16,19 @@
 - 재시도 횟수:
 
 ---
-
-### [Mission 1] 작업 단위: getCart → addToCart (US-05, 계약서 1장) — changeQuantity, removeItem은 이어서 진행
-- 도구 · 용도: VS Code + GitHub Copilot Agent — 계획 요청 → 구현
-- 입력한 요청(프롬프트) 요약 — 목표 / 맥락 / 제약 / 검증 기준: 목표: 함수 하나씩(getCart, addToCart)만, 계획 먼저 / 맥락: API_CONTRACT 1장, SRS US-05·06 / 제약: 외부 라이브러리 금지, test·공통 도구 수정 금지, 오류 시 장바구니 불변 / 검증: npm run test:m1
-- 에이전트가 제안한 계획에서 사람이 바꾼 것: (getCart) STOPPED·삭제 상품 처리가 계약서에 없다고 에이전트가 질문 → 사람이 "STOPPED 상품도 그대로 표시"로 결정. (addToCart) 합산 수량이 99 초과일 때 처리가 계약서에 없다고 질문 → 사람이 "재고 이내이면 허용"으로 결정. 계획에 maxAddable 계산이 없어서 승인 때 "재고 − 기존 수량, 0 미만이면 0"을 명시함
-- 결과 — 테스트 실행 결과(통과 / 실패 수): getCart 후 test:m1 12개 모두 실패(전부 addToCart 미구현). addToCart 후 12개 중 8개 통과, 4개 실패(changeQuantity 3개, removeItem 1개 미구현)
-- 에이전트의 실수 · 환각 · 불필요한 변경 (있다면): 계획 단계에서 maxAddable 계산을 빠뜨림(구현에는 반영됨). 불필요한 변경은 없었음
-- 사람이 확인한 범위(diff 를 어디까지 읽었는가, 직접 실행한 것): cart.js diff 전체, npm run test:m1 직접 실행, NOT_IMPLEMENTED 검색으로 남은 실패 원인 확인, 허용한 명령은 테스트 실행과 임시 검사 명령
-- 고친 점 / 다음에 바꿀 프롬프트 규칙: 요청문에 "계약서에 없는 동작은 추측하지 말고 질문"을 넣었더니 에이전트가 멈춰서 물어봄. 값 계산 공식(maxAddable)은 계획 승인 때 명시하기
-- 재시도 횟수: 0
+### [Mission 1] 작업 단위: getCart → addToCart → changeQuantity → removeItem (US-05·06, 계약서 1장)
+- 도구 · 용도: VS Code + GitHub Copilot Agent — 함수마다 계획 요청 → 승인 → 구현
+- 입력한 요청(프롬프트) 요약 — 목표 / 맥락 / 제약 / 검증 기준: 목표: 함수 하나씩, 구현 전에 계획만 / 맥락: API_CONTRACT 1장, SRS US-05·06 / 제약: 외부 라이브러리 금지, errors.js·util.js·test/ 수정 금지, 오류 시 장바구니 불변, 계약서에 없는 동작은 질문 / 검증: npm run test:m1
+- 에이전트가 제안한 계획에서 사람이 바꾼 것:
+  - getCart: STOPPED·삭제 상품 처리가 계약서에 없다고 에이전트가 질문 → 사람이 "STOPPED 상품도 그대로 표시"로 결정
+  - addToCart: 합산 수량이 99 초과일 때 처리가 계약서에 없다고 질문 → 사람이 "재고 이내이면 허용"으로 결정. 계획에 maxAddable 계산이 없어서 승인 때 "재고 − 기존 수량, 0 미만이면 0"을 명시
+  - changeQuantity: 첫 계획의 maxAddable(max(0, stock))을 사람이 틀렸다고 판단해 재계획 요청 → 두 번째 계획(재고 − 현재 수량)이 테스트와 맞지 않는 것을 직접 계산해 확인 → 첫 계획으로 되돌려 승인
+  - removeItem: 계획 그대로 승인(판매 상태는 검사하지 않음)
+- 결과 — 테스트 실행 결과(통과 / 실패 수): getCart 후 test:m1 12개 실패(전부 addToCart 미구현) → addToCart 후 8통과·4실패 → changeQuantity 후 11통과·1실패(removeItem) → removeItem 후 12통과·0실패. 전체 npm test는 47개 중 44통과, 3실패(도전 과제 expiry)
+- 에이전트의 실수 · 환각 · 불필요한 변경 (있다면): addToCart 계획에서 maxAddable 계산 누락. changeQuantity 재계획에서 설명(테스트가 3을 기대)과 계산(재고 3 − 현재 1 = 2)이 맞지 않는 계획을 냄. 요청 범위 밖 파일 변경은 없었음
+- 사람이 확인한 범위(diff 를 어디까지 읽었는가, 직접 실행한 것): getCart·addToCart는 cart.js diff 전체를 읽음. 매 단계 npm run test:m1을 직접 실행하고 NOT_IMPLEMENTED 검색으로 남은 실패 원인을 확인함. 허용한 명령은 테스트 실행, 읽기 전용 명령, 임시 검사용 node 명령. (changeQuantity·removeItem diff는 [읽었으면 "전체를 읽음", 안 읽었으면 "테스트 결과로만 확인"으로 고쳐서 적기])
+- 고친 점 / 다음에 바꿀 프롬프트 규칙: 요청문에 "계약서에 없는 동작은 추측하지 말고 질문"을 넣었더니 에이전트가 멈춰서 물어봄. 값을 계산하는 규칙은 승인 전에 테스트 숫자로 직접 계산해 보고 요청문에 공식을 명시하기
+- 재시도 횟수: 1 (changeQuantity 계획 재요청)
 
 ### [Mission 2] 작업 단위: canTransition → changeStatus → createOrder(검사 단계) → createOrder(생성 단계)
 - 도구 · 용도: Claude(채팅). 함수 단위로 질문(프롬프트)을 작성하고 구현하게 했다. 구현 결과는 팀이 src/order.js 에 붙여 넣었다.
